@@ -1,0 +1,15 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": {
+        "declaration": false,
+        "module": "commonjs",
+        "newLine": "LF",
+        "noImplicitAny": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": false,
+        "sourceMap": true,
+        "strictNullChecks": true,
+        "target": "ES2017",
+        "skipLibCheck": true
+    }
+}
