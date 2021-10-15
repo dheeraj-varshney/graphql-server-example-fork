@@ -16,7 +16,7 @@ const typeDefs = gql`
   }
 
   type TestReq {
-    msg: String
+    success: String
   }
 
   # The "Query" type is special: it lists all of the available queries that
@@ -41,8 +41,9 @@ const books = [
 
 // Resolvers define the technique for fetching the types defined in the
 // schema. This resolver retrieves books from the "books" array above.
+let postUrl = 'http://internal-node-api-mock-532674101.us-east-1.elb.amazonaws.com/load'
 const testRequestResolver = async () => {
-  const { body } = await request('http://localhost:3000/foo')
+  const { body } = await request(postUrl, {method: 'POST'})
   const res = await body.json();
   // body.setEncoding('utf8')
   // body.on('data', console.log)
