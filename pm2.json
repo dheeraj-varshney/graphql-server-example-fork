@@ -1,17 +1,17 @@
 {
   "apps": [
     {
-      "name": "Dream11GraphQL",
-      "script": "server.js",
+      "name": "undici-client",
+      "script": "index2.js",
       "instances": 8,
       "watch": false,
       "merge_logs": true,
       "exec_mode": "cluster",
       "log_date_format": "DD-MM-YYYY HH:mm Z",
-      "cwd": "/var/www/GraphQL",
+      "cwd": "./",
       "env": {
         "NODE_ENV": "production",
-        "NODE_CONFIG_DIR": "/var/www/GraphQL/config"
+        "NODE_CONFIG_DIR": "./"
       }
     }
   ]
