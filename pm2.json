@@ -1,0 +1,18 @@
+{
+  "apps": [
+    {
+      "name": "Dream11GraphQL",
+      "script": "server.js",
+      "instances": 8,
+      "watch": false,
+      "merge_logs": true,
+      "exec_mode": "cluster",
+      "log_date_format": "DD-MM-YYYY HH:mm Z",
+      "cwd": "/var/www/GraphQL",
+      "env": {
+        "NODE_ENV": "production",
+        "NODE_CONFIG_DIR": "/var/www/GraphQL/config"
+      }
+    }
+  ]
+}
