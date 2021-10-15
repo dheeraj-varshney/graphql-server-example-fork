@@ -89,8 +89,8 @@ async function startApolloServer(typeDefs, resolvers) {
   });
   await server.start();
   app.register(server.createHandler());
-  await app.listen(4000, '0.0.0.0');
-  console.log(`🚀 Server ready at http://0.0.0.0:4000${server.graphqlPath}`);
+  await app.listen(9999, '0.0.0.0');
+  console.log(`🚀 Server ready at http://0.0.0.0:9999${server.graphqlPath}`);
 }
 
 startApolloServer(typeDefs, resolvers);
