@@ -78,9 +78,7 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
 }
 
 async function startApolloServer(typeDefs, resolvers) {
-  const app = fastify({
-    logger: true
-  });
+  const app = fastify();
   app.get('/health', async function (request, reply) {
     reply.send({ success: 200 })
   })
