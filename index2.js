@@ -70,7 +70,12 @@ function fastifyAppClosePlugin(app) {
     };
 }
 async function startApolloServer(typeDefs, resolvers) {
-    const app = fastify_1.default();
+    const app = fastify_1.default({
+        logger: true
+    });
+    app.get('/health', async function (request, reply) {
+        reply.send({ success: 200 });
+    });
     const server = new apollo_server_fastify_1.ApolloServer({
         typeDefs,
         resolvers,
