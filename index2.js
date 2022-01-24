@@ -1,9 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+require("./tracer");
 const apollo_server_fastify_1 = require("apollo-server-fastify");
 const apollo_server_core_1 = require("apollo-server-core");
 const fastify_1 = require("fastify");
-const undici_1 = require("undici");
+// import { request } from 'undici'
+const gpu_js_1 = require("gpu.js");
 console.log("Starting server");
 const typeDefs = apollo_server_fastify_1.gql `
   # Comments in GraphQL strings (such as this one) start with the hash (#) symbol.
@@ -34,20 +36,67 @@ const books = [
     {
         title: 'City of Glass',
         author: 'Paul Auster',
-    },
+    }
 ];
 // Resolvers define the technique for fetching the types defined in the
 // schema. This resolver retrieves books from the "books" array above.
-let postUrl = 'http://internal-node-api-mock-532674101.us-east-1.elb.amazonaws.com/load';
+const getArrayValues = () => {
+    //Create 2D array here
+    const values = [[], []];
+    // Insert Values into first array
+    for (let y = 0; y < 2048; y++) {
+        values[0].push([]);
+        values[1].push([]);
+        // Insert values into second array
+        for (let x = 0; x < 2048; x++) {
+            values[0][y].push(Math.random());
+            values[1][y].push(Math.random());
+        }
+    }
+    //Return filled array
+    return values;
+};
+// let postUrl = 'http://internal-node-api-mock-5646764101.us-east-1.elb.amazonaws.com/load'
 const testRequestResolver = async () => {
-    const { body } = await undici_1.request(postUrl, { method: 'POST' });
-    const res = await body.json();
-    // body.setEncoding('utf8')
-    // body.on('data', console.log)
-    // body.on('end', () => {
-    //   console.log('trailers', trailers)
-    // })
-    console.log('body', res);
+    // const { body } = await request(postUrl, {method: 'POST'})
+    // const res = await body.json();
+    console.time('server-gpu');
+    const gpu = new gpu_js_1.GPU({
+        mode: "gpu"
+    });
+    const multiplyLargeValues = gpu.createKernel(function (a, b) {
+        let sum = 0;
+        for (let i = 0; i < 2048; i++) {
+            sum += a[this.thread.y][i] * b[i][this.thread.x];
+        }
+        return sum;
+    }).setOutput([2048, 2048]);
+    const largeArray = getArrayValues();
+    // console.log('arr', largeArray)
+    const res = multiplyLargeValues(largeArray[0], largeArray[1]);
+    // console.log('body', res[0])
+    console.timeEnd('server-gpu');
+    console.time('server-cpu');
+    const multiplyLargeValuesV2 = (a, b) => {
+        let resArr = [];
+        for (let x = 0; x < 2048; x++) {
+            resArr.push([]);
+            for (let i = 0; i < 2048; i++) {
+                let sum = 0;
+                for (let j = 0; j < 2048; j++) {
+                    sum += a[i][x] * b[x][j];
+                    if (i == 2047) {
+                        resArr[x].push(sum);
+                    }
+                }
+            }
+        }
+        return resArr;
+    };
+    // const largeArrayV2 = getArrayValues()
+    multiplyLargeValuesV2(largeArray[0], largeArray[1]);
+    // console.log('bodyV2', resV2[0])
+    console.timeEnd('server-cpu');
     return res;
 };
 const resolvers = {
@@ -74,7 +123,7 @@ async function startApolloServer(typeDefs, resolvers) {
         logger: true
     });
     app.get('/health', async function (request, reply) {
-        reply.send({ success: 200 });
+        reply.send({ success: 200, date: '2021-05-17T07:00:00.000Z' });
     });
     const server = new apollo_server_fastify_1.ApolloServer({
         typeDefs,
@@ -86,8 +135,8 @@ async function startApolloServer(typeDefs, resolvers) {
     });
     await server.start();
     app.register(server.createHandler());
-    await app.listen(9999, '0.0.0.0');
-    console.log(`🚀 Server ready at http://0.0.0.0:9999${server.graphqlPath}`);
+    await app.listen(9990, '0.0.0.0');
+    console.log(`🚀 Server ready at http://0.0.0.0:9990${server.graphqlPath}`);
 }
 startApolloServer(typeDefs, resolvers);
 //# sourceMappingURL=index2.js.map

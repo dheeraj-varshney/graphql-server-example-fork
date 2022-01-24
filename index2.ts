@@ -1,8 +1,10 @@
+import './tracer';
 import { ApolloServer, gql } from 'apollo-server-fastify';
 import { ApolloServerPlugin } from 'apollo-server-plugin-base';
 import { ApolloServerPluginDrainHttpServer } from 'apollo-server-core';
 import fastify, {FastifyInstance} from 'fastify';
-import { request } from 'undici'
+// import { request } from 'undici'
+import { GPU } from 'gpu.js'
 
 
 console.log("Starting server");
@@ -36,22 +38,78 @@ const books = [
     {
       title: 'City of Glass',
       author: 'Paul Auster',
-    },
+    }
   ];
 
 // Resolvers define the technique for fetching the types defined in the
 // schema. This resolver retrieves books from the "books" array above.
-let postUrl = 'http://internal-node-api-mock-532674101.us-east-1.elb.amazonaws.com/load'
-const testRequestResolver = async () => {
-  const { body } = await request(postUrl, {method: 'POST'})
-  const res = await body.json();
-  // body.setEncoding('utf8')
-  // body.on('data', console.log)
-  // body.on('end', () => {
-  //   console.log('trailers', trailers)
-  // })
+const getArrayValues = () => {
 
-  console.log('body', res)
+  //Create 2D array here
+  const values: Array<Array<Array<number>>> = [[], []]
+
+  // Insert Values into first array
+  for (let y = 0; y < 2048; y++) {
+    values[0].push([])
+    values[1].push([])
+
+    // Insert values into second array
+    for (let x = 0; x < 2048; x++) {
+      values[0][y].push(Math.random())
+      values[1][y].push(Math.random())
+    }
+  }
+
+  //Return filled array
+  return values
+}
+
+// let postUrl = 'http://internal-node-api-mock-5646764101.us-east-1.elb.amazonaws.com/load'
+const testRequestResolver = async () => {
+  // const { body } = await request(postUrl, {method: 'POST'})
+  // const res = await body.json();
+  console.time('server-gpu')
+  const gpu = new GPU({
+    mode: "gpu"
+  });
+  const multiplyLargeValues = gpu.createKernel(function(a, b) {
+    let sum = 0;
+    for (let i = 0; i < 2048; i++) {
+      sum += a[this.thread.y][i] * b[i][this.thread.x];
+    }
+    return sum;
+  }).setOutput([2048, 2048])
+
+  const largeArray = getArrayValues()
+  // console.log('arr', largeArray)
+  const res = multiplyLargeValues(largeArray[0], largeArray[1])
+  // console.log('body', res[0])
+  console.timeEnd('server-gpu')
+
+  console.time('server-cpu')
+
+  const multiplyLargeValuesV2 = (a, b) => {
+    let resArr: Array<Array<number>> = [];
+    for(let x = 0; x<2048; x++) {
+      resArr.push([])
+      for (let i = 0; i < 2048; i++) {
+        let sum = 0;
+        for(let j=0; j<2048; j++) {
+          sum += a[i][x] * b[x][j]
+          if(i==2047) {
+            resArr[x].push(sum)
+          }
+        }
+      }
+    }
+    return resArr
+  }
+  // const largeArrayV2 = getArrayValues()
+  multiplyLargeValuesV2(largeArray[0], largeArray[1])
+
+  // console.log('bodyV2', resV2[0])
+  console.timeEnd('server-cpu')
+
   return res;
 }
 
@@ -78,9 +136,11 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
 }
 
 async function startApolloServer(typeDefs, resolvers) {
-  const app = fastify();
+  const app = fastify({
+    logger: true
+  });
   app.get('/health', async function (request, reply) {
-    reply.send({ success: 200 })
+    reply.send({ success: 200, date: '2021-05-17T07:00:00.000Z' })
   })
   const server = new ApolloServer({
     typeDefs,
@@ -92,8 +152,8 @@ async function startApolloServer(typeDefs, resolvers) {
   });
   await server.start();
   app.register(server.createHandler());
-  await app.listen(9999, '0.0.0.0');
-  console.log(`🚀 Server ready at http://0.0.0.0:9999${server.graphqlPath}`);
+  await app.listen(9990, '0.0.0.0');
+  console.log(`🚀 Server ready at http://0.0.0.0:9990${server.graphqlPath}`);
 }
 
 startApolloServer(typeDefs, resolvers);

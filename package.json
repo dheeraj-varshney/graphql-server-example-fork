@@ -2,8 +2,9 @@
   "name": "graphql-server-example",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index2.js",
   "scripts": {
+    "start": "nodemon index2.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -15,8 +16,11 @@
     "apollo-server-fastify": "^3.3.0",
     "apollo-server-plugin-base": "^3.2.0",
     "axios": "^0.21.4",
+    "dd-trace": "^1.5.1",
     "fastify": "^3.21.5",
+    "gpu.js": "^2.11.4",
     "graphql": "^15.6.0",
+    "tsc": "^2.0.3",
     "typescript": "^3.8.2",
     "undici": "^4.7.0"
   }
