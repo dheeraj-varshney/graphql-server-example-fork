@@ -25,6 +25,7 @@ const typeDefs = gql`
   type Query {
     books: [Book]
     testRequest: TestReq
+    testRequestBatch: TestReq
   }
 `;
 
@@ -41,7 +42,7 @@ const books = [
 
 // Resolvers define the technique for fetching the types defined in the
 // schema. This resolver retrieves books from the "books" array above.
-let postUrl = 'http://internal-node-api-mock-532674101.us-east-1.elb.amazonaws.com/load'
+let postUrl = 'http://localhost:3000/health'
 const testRequestResolver = async () => {
   const { body } = await request(postUrl, {method: 'POST'})
   const res = await body.json();
@@ -52,15 +53,37 @@ const testRequestResolver = async () => {
   // })
 
   console.log('body', res)
-  return res;
+  return {success: res.msg};
 }
+
+const testRequestMapper = (res) => ({success: res.msg})
+
+const activeQueues = {}
+let cnt = 0, round = 1;
+const testRequestResolverBatching = (cb) => async () => {
+  if (activeQueues[round] && cnt < 50){
+    console.log("round: ", round, " cnt: ", cnt)
+    cnt = cnt++ % 50
+    return activeQueues[round].push(cb);
+  }
+
+  activeQueues[round] = [cb]
+  const { body } = await request(postUrl, {method: 'POST'})
+  const res = await body.json();
+  console.log('single res', res)
+  const queue = activeQueues[round]
+  activeQueues[round] = null
+  queue.forEach(testRequestMapper(res))
+}
+
 
 const resolvers = {
     Query: {
       books: () => {
           return books
       },
-      testRequest: testRequestResolver
+      testRequest: testRequestResolver,
+      testRequestBatch: testRequestResolverBatching
     },
   };
 
@@ -77,10 +100,35 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
   };
 }
 
+const batchRequestWithCb = async (cb) => {
+  let res = await request(postUrl, {method: 'POST'})
+  let body = await res.body.json()
+  console.log("response", body)
+  return cb(body)
+}
+const batchRequestRes = (cb) => {
+  if (activeQueues[round]) {
+    return activeQueues[round].push(cb);
+  }
+
+  activeQueues[round] = [cb];
+
+  return batchRequestWithCb((data) => {
+    const queue = activeQueues[round];
+    activeQueues[round] = null;
+    queue.forEach(callback => callback(data));
+  });
+}
 async function startApolloServer(typeDefs, resolvers) {
   const app = fastify();
-  app.get('/health', async function (request, reply) {
-    reply.send({ success: 200 })
+  app.get('/health', async function (req, reply) {
+    batchRequestRes((data)=> {
+      console.log("health", data)
+      reply.send(data)
+    })
+    // const { body } = await request(postUrl, {method: 'POST'})
+    // const res = await body.json();
+    // reply.send({ success: 200, ...res })
   })
   const server = new ApolloServer({
     typeDefs,
@@ -92,8 +140,8 @@ async function startApolloServer(typeDefs, resolvers) {
   });
   await server.start();
   app.register(server.createHandler());
-  await app.listen(9999, '0.0.0.0');
-  console.log(`🚀 Server ready at http://0.0.0.0:9999${server.graphqlPath}`);
+  await app.listen(9990, '0.0.0.0');
+  console.log(`🚀 Server ready at http://0.0.0.0:9990${server.graphqlPath}`);
 }
 
 startApolloServer(typeDefs, resolvers);
