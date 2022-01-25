@@ -101,12 +101,13 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
   };
 }
 
-const batchRequestWithCb = (cb, body) => {
-  // let res = await request(postUrl, {method: 'POST'})
-  // let body = await res.body.json()
-  // console.log("batchResponse", body)
-  return cb(body)
-}
+const activeQueuesArr = []
+// const batchRequestWithCb = (cb, body) => {
+//   // let res = await request(postUrl, {method: 'POST'})
+//   // let body = await res.body.json()
+//   // console.log("batchResponse", body)
+//   return cb(body)
+// }
 const batchRequestRes = (cb) => {
   if (activeQueues[round]) {
     return activeQueues[round].push(cb);
@@ -118,11 +119,9 @@ const batchRequestRes = (cb) => {
         res.body.json()
             .then(body => {
               // console.log("response", body, activeQueues[round].length)
-              return batchRequestWithCb((data) => {
-                const queue = activeQueues[round];
-                activeQueues[round] = null;
-                queue.forEach(callback => callback(data));
-              }, body);
+              const queue = activeQueues[round];
+              activeQueues[round] = null;
+              queue.forEach(callback => callback(body));
             })
       })
   // return cb(body)
@@ -136,6 +135,7 @@ const batchRequestRes = (cb) => {
   //   queue.forEach(callback => callback(data));
   // }, body);
 }
+
 async function startApolloServer(typeDefs, resolvers) {
   const app = fastify();
   app.get('/health', async function (req, reply) {
