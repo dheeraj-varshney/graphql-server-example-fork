@@ -64,13 +64,10 @@ const testRequestResolver = async () => {
     const gpu = new gpu_js_1.GPU({
         mode: "gpu"
     });
-    const multiplyLargeValues = gpu.createKernel(function (a, b) {
-        let sum = 0;
-        for (let i = 0; i < 2048; i++) {
-            sum += a[this.thread.y][i] * b[i][this.thread.x];
-        }
-        return sum;
-    }).setOutput([2048, 2048]);
+    const multiplyLargeValues = gpu.createKernel(function (epochArr) {
+        let currEpoch = 123421345234;
+        return minEpoch < epochArr[this.thread.x] && epochArr[this.thread.x] < maxEpoch;
+    }).setOutput([2048]);
     const largeArray = getArrayValues();
     // console.log('arr', largeArray)
     const res = multiplyLargeValues(largeArray[0], largeArray[1]);
