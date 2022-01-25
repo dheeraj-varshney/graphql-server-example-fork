@@ -79,19 +79,29 @@ const findEpochInRange = gpu.createKernel(function (epochArr) {
         // return 0;
     }
 }).setOutput([length]);
-const testRequestResolver = async () => {
+const testRequestGpuResolver = async () => {
     // console.time('server-gpu')
     const res = findEpochInRange(timeArr);
     // console.log('body', res)
     // console.timeEnd('server-gpu')
     return { success: 'true' };
 };
+const testRequestResolver = async () => {
+    let res = new Array(10);
+    let currEpoch = 1643102686421;
+    let minEpoch = Math.floor((currEpoch + 19800000) / 604800000) * 604800000; // epoc + ist offset / week
+    let maxEpoch = minEpoch + 604800000;
+    for (let i = 0; i < 10; i++) {
+        res[i] = timeArr[i] != -1 && minEpoch < timeArr[i] && timeArr[i] < maxEpoch;
+    }
+    return { success: "true" };
+};
 const resolvers = {
     Query: {
         books: () => {
             return books;
         },
-        testRequest: testRequestResolver
+        testRequest: testRequestGpuResolver
     },
 };
 function fastifyAppClosePlugin(app) {
