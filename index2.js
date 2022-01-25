@@ -51,30 +51,31 @@ const testRequestResolver = async () => {
     console.log('body', res);
     return { success: res.msg };
 };
-const testRequestMapper = (res) => ({ success: res.msg });
+// const testRequestMapper = (res) => ({success: res.msg})
 const activeQueues = {};
-let cnt = 0, round = 1;
-const testRequestResolverBatching = (cb) => async () => {
-    if (activeQueues[round] && cnt < 50) {
-        console.log("round: ", round, " cnt: ", cnt);
-        cnt = cnt++ % 50;
-        return activeQueues[round].push(cb);
-    }
-    activeQueues[round] = [cb];
-    const { body } = await undici_1.request(postUrl, { method: 'POST' });
-    const res = await body.json();
-    console.log('single res', res);
-    const queue = activeQueues[round];
-    activeQueues[round] = null;
-    queue.forEach(testRequestMapper(res));
-};
+// let cnt = 0;
+let round = 1;
+// const testRequestResolverBatching = (cb) => async () => {
+//   if (activeQueues[round] && cnt < 50){
+//     console.log("round: ", round, " cnt: ", cnt)
+//     cnt = cnt++ % 50
+//     return activeQueues[round].push(cb);
+//   }
+//
+//   activeQueues[round] = [cb]
+//   const { body } = await request(postUrl, {method: 'POST'})
+//   const res = await body.json();
+//   console.log('single res', res)
+//   const queue = activeQueues[round]
+//   activeQueues[round] = null
+//   queue.forEach(testRequestMapper(res))
+// }
 const resolvers = {
     Query: {
         books: () => {
             return books;
         },
         testRequest: testRequestResolver,
-        testRequestBatch: testRequestResolverBatching
     },
 };
 function fastifyAppClosePlugin(app) {
@@ -88,10 +89,10 @@ function fastifyAppClosePlugin(app) {
         },
     };
 }
-const batchRequestWithCb = async (cb) => {
-    let res = await undici_1.request(postUrl, { method: 'POST' });
-    let body = await res.body.json();
-    console.log("response", body);
+const batchRequestWithCb = (cb, body) => {
+    // let res = await request(postUrl, {method: 'POST'})
+    // let body = await res.body.json()
+    // console.log("batchResponse", body)
     return cb(body);
 };
 const batchRequestRes = (cb) => {
@@ -99,17 +100,33 @@ const batchRequestRes = (cb) => {
         return activeQueues[round].push(cb);
     }
     activeQueues[round] = [cb];
-    return batchRequestWithCb((data) => {
-        const queue = activeQueues[round];
-        activeQueues[round] = null;
-        queue.forEach(callback => callback(data));
+    undici_1.request(postUrl, { method: 'POST' })
+        .then(res => {
+        res.body.json()
+            .then(body => {
+            // console.log("response", body, activeQueues[round].length)
+            return batchRequestWithCb((data) => {
+                const queue = activeQueues[round];
+                activeQueues[round] = null;
+                queue.forEach(callback => callback(data));
+            }, body);
+        });
     });
+    // return cb(body)
+    // let res = await request(postUrl, {method: 'POST'})
+    // let body = await res.body.json()
+    // console.log("response", body, activeQueues[round].length)
+    // return batchRequestWithCb((data) => {
+    //   const queue = activeQueues[round];
+    //   activeQueues[round] = null;
+    //   queue.forEach(callback => callback(data));
+    // }, body);
 };
 async function startApolloServer(typeDefs, resolvers) {
     const app = fastify_1.default();
     app.get('/health', async function (req, reply) {
         batchRequestRes((data) => {
-            console.log("health", data);
+            // console.log("health", data)
             reply.send(data);
         });
         // const { body } = await request(postUrl, {method: 'POST'})
