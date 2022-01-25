@@ -8,6 +8,9 @@ app.get('/', (req, res) => {
 app.get('/foo', (req, res) => {
     res.json({msg: 'Hello foo!'})
 })
+app.get('/foo', (req, res) => {
+    res.json({msg: 'Hello foo!'})
+})
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
