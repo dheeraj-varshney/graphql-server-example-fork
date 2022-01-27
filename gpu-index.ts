@@ -70,8 +70,6 @@ const getEpochArr = n => Array.apply(0, Array(length)).map(function (x, i) {
     else return -1
 })
 
-const timeArr = getEpochArr(10)
-console.log(timeArr)
 // let postUrl = 'http://internal-node-api-mock-5646764101.us-east-1.elb.amazonaws.com/load'
 const gpu = new GPU({mode: 'gpu'});
 const findEpochInRange = gpu.createKernel(function(epochArr) {
@@ -87,22 +85,23 @@ const findEpochInRange = gpu.createKernel(function(epochArr) {
     }
 }).setOutput([length])
 
+let arrSize = 1000
+const timeArr = getEpochArr(arrSize)
+console.log(timeArr)
 const testRequestGpuResolver = async () => {
     // console.time('server-gpu')
-
     const res = findEpochInRange(timeArr)
     // console.log('body', res)
-
     // console.timeEnd('server-gpu')
     return {success: 'true'} ;
 }
 
-const testRequestResolver = async () => {
-    let res = new Array(10)
+const testRequestCpuResolver = async () => {
+    let res = new Array(arrSize)
     let currEpoch = 1643102686421;
     let minEpoch = Math.floor((currEpoch + 19800000) / 604800000) * 604800000 // epoc + ist offset / week
     let maxEpoch = minEpoch + 604800000
-    for (let i=0; i < 10; i++) {
+    for (let i=0; i < arrSize; i++) {
         res[i] = timeArr[i] != -1 && minEpoch < timeArr[i] && timeArr[i] < maxEpoch
     }
     return {success: "true"}
@@ -113,7 +112,7 @@ const resolvers = {
         books: () => {
             return books
         },
-        testRequest: testRequestGpuResolver
+        testRequest: testRequestCpuResolver
     },
 };
 
