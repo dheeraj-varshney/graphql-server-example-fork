@@ -52,9 +52,9 @@ const testRequestResolver = async () => {
     return { success: res.msg };
 };
 // const testRequestMapper = (res) => ({success: res.msg})
-const activeQueues = {};
+// const activeQueues = {}
 // let cnt = 0;
-let round = 1;
+// let round = 1;
 // const testRequestResolverBatching = (cb) => async () => {
 //   if (activeQueues[round] && cnt < 50){
 //     console.log("round: ", round, " cnt: ", cnt)
@@ -89,7 +89,8 @@ function fastifyAppClosePlugin(app) {
         },
     };
 }
-const activeQueuesArr = [];
+let activeQueuesArr = new Array(1000);
+let idx = 0;
 // const batchRequestWithCb = (cb, body) => {
 //   // let res = await request(postUrl, {method: 'POST'})
 //   // let body = await res.body.json()
@@ -97,18 +98,22 @@ const activeQueuesArr = [];
 //   return cb(body)
 // }
 const batchRequestRes = (cb) => {
-    if (activeQueues[round]) {
-        return activeQueues[round].push(cb);
+    console.log("array", activeQueuesArr.length, activeQueuesArr[0]);
+    if (activeQueuesArr[0]) {
+        activeQueuesArr[idx++] = cb;
+        return cb;
     }
-    activeQueues[round] = [cb];
+    activeQueuesArr[idx++] = cb;
     undici_1.request(postUrl, { method: 'POST' })
         .then(res => {
         res.body.json()
             .then(body => {
-            // console.log("response", body, activeQueues[round].length)
-            const queue = activeQueues[round];
-            activeQueues[round] = null;
-            queue.forEach(callback => callback(body));
+            console.log("response idx", idx, body);
+            for (let i = 0; i < idx; i++) {
+                activeQueuesArr[i](body);
+                activeQueuesArr[i] = null;
+            }
+            idx = 0;
         });
     });
     // return cb(body)
