@@ -101,14 +101,14 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
   };
 }
 
-const activeQueuesArr = []
-// const batchRequestWithCb = (cb, body) => {
-//   // let res = await request(postUrl, {method: 'POST'})
-//   // let body = await res.body.json()
-//   // console.log("batchResponse", body)
-//   return cb(body)
-// }
-const batchRequestRes = (cb) => {
+// const activeQueuesArr = []
+const batchRequestWithCb = (cb, body) => {
+  // let res = await request(postUrl, {method: 'POST'})
+  // let body = await res.body.json()
+  // console.log("batchResponse", body)
+  return cb(body)
+}
+const batchRequestRes = async (cb) => {
   if (activeQueues[round]) {
     return activeQueues[round].push(cb);
   }
@@ -118,17 +118,22 @@ const batchRequestRes = (cb) => {
       .then(res => {
         res.body.json()
             .then(body => {
+                // const queue = activeQueues[round];
+                // activeQueues[round] = null;
+                // queue.forEach(callback => callback(body));
               // console.log("response", body, activeQueues[round].length)
-              const queue = activeQueues[round];
-              activeQueues[round] = null;
-              queue.forEach(callback => callback(body));
+              return batchRequestWithCb((data) => {
+                const queue = activeQueues[round];
+                activeQueues[round] = null;
+                queue.forEach(callback => callback(data));
+              }, body);
             })
       })
   // return cb(body)
 
   // let res = await request(postUrl, {method: 'POST'})
   // let body = await res.body.json()
-  // console.log("response", body, activeQueues[round].length)
+  // // console.log("response", body, activeQueues[round].length)
   // return batchRequestWithCb((data) => {
   //   const queue = activeQueues[round];
   //   activeQueues[round] = null;
@@ -139,13 +144,13 @@ const batchRequestRes = (cb) => {
 async function startApolloServer(typeDefs, resolvers) {
   const app = fastify();
   app.get('/health', async function (req, reply) {
-    batchRequestRes((data)=> {
+    // batchRequestRes((data)=> {
       // console.log("health", data)
-      reply.send(data)
-    })
-    // const { body } = await request(postUrl, {method: 'POST'})
-    // const res = await body.json();
-    // reply.send({ success: 200, ...res })
+      // reply.send(data)
+    // })
+    const { body } = await request(postUrl, {method: 'POST'})
+    const res = await body.json();
+    reply.send({ success: 200, ...res })
   })
   const server = new ApolloServer({
     typeDefs,
