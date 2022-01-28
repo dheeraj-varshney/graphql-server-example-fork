@@ -101,7 +101,7 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
   };
 }
 
-const activeQueuesArr = []
+let activeQueuesArr
 // const batchRequestWithCb = (cb, body) => {
 //   // let res = await request(postUrl, {method: 'POST'})
 //   // let body = await res.body.json()
@@ -109,18 +109,18 @@ const activeQueuesArr = []
 //   return cb(body)
 // }
 const batchRequestRes = (cb) => {
-  if (activeQueues[round]) {
-    return activeQueues[round].push(cb);
+  if (activeQueuesArr) {
+    return activeQueuesArr.push(cb);
   }
 
-  activeQueues[round] = [cb];
+  activeQueuesArr = [cb];
   request(postUrl, {method: 'POST'})
       .then(res => {
         res.body.json()
             .then(body => {
-              // console.log("response", body, activeQueues[round].length)
-              const queue = activeQueues[round];
-              activeQueues[round] = null;
+              // console.log("response", body, activeQueuesArr.length)
+              const queue = activeQueuesArr;
+              activeQueuesArr = null;
               queue.forEach(callback => callback(body));
             })
       })
@@ -128,10 +128,10 @@ const batchRequestRes = (cb) => {
 
   // let res = await request(postUrl, {method: 'POST'})
   // let body = await res.body.json()
-  // console.log("response", body, activeQueues[round].length)
+  // console.log("response", body, activeQueuesArr.length)
   // return batchRequestWithCb((data) => {
-  //   const queue = activeQueues[round];
-  //   activeQueues[round] = null;
+  //   const queue = activeQueuesArr;
+  //   activeQueuesArr = null;
   //   queue.forEach(callback => callback(data));
   // }, body);
 }
