@@ -11,12 +11,6 @@ console.log("Starting server");
 const typeDefs = gql`
     # Comments in GraphQL strings (such as this one) start with the hash (#) symbol.
 
-    # This "Book" type defines the queryable fields for every book in our data source.
-    type Book {
-        title: String
-        author: String
-    }
-
     type TestReq {
         success: String
     }
@@ -25,25 +19,13 @@ const typeDefs = gql`
     # clients can execute, along with the return type for each. In this
     # case, the "books" query returns an array of zero or more Books (defined above).
     type Query {
-        books: [Book]
         testRequest: TestReq
     }
 `;
 
-const books = [
-    {
-        title: 'The Awakening',
-        author: 'Kate Chopin',
-    },
-    {
-        title: 'City of Glass',
-        author: 'Paul Auster',
-    }
-];
-
 // Resolvers define the technique for fetching the types defined in the
 // schema. This resolver retrieves books from the "books" array above.
-const length = 2048
+const length = 20000
 const getArrayValues = () => {
 
     //Create 2D array here
@@ -65,6 +47,7 @@ const getArrayValues = () => {
     return values
 }
 
+// will return an array of constant size with pre filled value upto given length `n`
 const getEpochArr = n => Array.apply(0, Array(length)).map(function (x, i) {
     if (i < n) return 1643102686421 + Math.floor(100000000 * Math.random());
     else return -1
@@ -85,7 +68,7 @@ const findEpochInRange = gpu.createKernel(function(epochArr) {
     }
 }).setOutput([length])
 
-let arrSize = 1000
+let arrSize = 20000
 const timeArr = getEpochArr(arrSize)
 console.log(timeArr)
 const testRequestGpuResolver = async () => {
@@ -109,9 +92,6 @@ const testRequestCpuResolver = async () => {
 
 const resolvers = {
     Query: {
-        books: () => {
-            return books
-        },
         testRequest: testRequestCpuResolver
     },
 };
