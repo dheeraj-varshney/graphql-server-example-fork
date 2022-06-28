@@ -1,0 +1,62 @@
+name: Continous Integration
+on:
+  push:
+    branches: '*'
+  pull_request:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.17.1]
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+      - name: Install dependencies
+        run: |
+          yarn install
+          yarn global add pm2
+      - name: List dependencies
+        run: yarn list
+      - name: Lint check
+        id: link-check
+        run: yarn lint
+      - name: Check for failed lint check
+        if: steps.link-check.status == 'failure'
+        run: exit 1
+      - name: Run prettier
+        run: yarn prettier
+      - name: Run unit test
+        id: run-unit-tests
+        run: yarn test
+      - name: Check for unit test failure
+        if: steps.run-unit-tests.outputs.status == 'failure'
+        run: exit 1
+      - name: Start GraphQL mock server with coverage
+        run: yarn defence
+      - name: Run integration test
+        id: run-integration-tests
+        run: |
+          yarn global add wait-port
+          wait-port 9999
+          yarn integration-test
+          yarn stop-graphql
+      - name: Generate coverage report
+        id: generate-coverage-report
+        run: yarn report
+      - name: Publish Coveralls Report
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check for integration test failure
+        if: steps.run-integration-tests.outputs.status == 'failure'
+        run: exit 1
