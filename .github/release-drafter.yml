@@ -34,4 +34,4 @@ template: |
   ## Changes
   $CHANGES
 branches:
-  - master
+  - main
