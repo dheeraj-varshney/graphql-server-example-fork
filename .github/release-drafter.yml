@@ -1,4 +1,4 @@
-name-template: 'Graphql Release DD-MM-YYYY'
+name-template: 'Self Release DD-MM-YYYY'
 tag-template: 'v$NEXT_PATCH_VERSION'
 categories:
   - title: 'Features'
