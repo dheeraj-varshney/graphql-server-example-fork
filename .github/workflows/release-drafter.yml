@@ -3,7 +3,7 @@ name: Release Drafter GraphQL
 on:
   push:
     branches:
-      - 'main'
+      - main
 
 
 jobs:
